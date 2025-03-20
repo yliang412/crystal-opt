@@ -2,68 +2,64 @@
 #include <iostream>
 #include <string>
 
-/*#include <cuda.h>*/
-/*#include <cub/util_allocator.cuh>*/
-
 using namespace std;
 
-#define SF 16
+/** @brief Defines the scale factor here. */
+#define SF 1
 
-#define LOAD_TYPE 0
-
-#define BASE_PATH "./data/storage/"
+#define BASE_PATH "/afs/cs.cmu.edu/user/yuchenl3/scs-workspace/crystal-opt/test/ssb/data/"
 
 #if SF == 1
-#define DATA_DIR BASE_PATH "sf1_column_bin/"
+#define DATA_DIR BASE_PATH "s1_columnar/"
 #define LO_LEN 6001171
 #define P_LEN 200000
 #define S_LEN 2000
 #define C_LEN 30000
 #define D_LEN 2556
 #elif SF == 2
-#define DATA_DIR BASE_PATH "sf2_column_bin/"
+#define DATA_DIR BASE_PATH "s2_columnar/"
 #define LO_LEN 11998051
 #define P_LEN 400000
 #define S_LEN 4000
 #define C_LEN 60000
 #define D_LEN 2556
 #elif SF == 4
-#define DATA_DIR BASE_PATH "sf4_column_bin/"
+#define DATA_DIR BASE_PATH "s4_columnar/"
 #define LO_LEN 23996670
 #define P_LEN 600000
 #define S_LEN 8000
 #define C_LEN 120000
 #define D_LEN 2556
 #elif SF == 8
-#define DATA_DIR BASE_PATH "sf8_column_bin/"
+#define DATA_DIR BASE_PATH "s8_columnar/"
 #define LO_LEN 47989129
 #define P_LEN 800000
 #define S_LEN 16000
 #define C_LEN 240000
 #define D_LEN 2556
 #elif SF == 16
-#define DATA_DIR BASE_PATH "sf16_column_bin/"
+#define DATA_DIR BASE_PATH "s16_columnar/"
 #define LO_LEN 95988758
 #define P_LEN 1000000
 #define S_LEN 32000
 #define C_LEN 480000
 #define D_LEN 2556
 #elif SF == 32
-#define DATA_DIR BASE_PATH "sf32_column_bin/"
+#define DATA_DIR BASE_PATH "s32_columnar/"
 #define LO_LEN 192000754
 #define P_LEN 1200000
 #define S_LEN 64000
 #define C_LEN 960000
 #define D_LEN 2556
 #elif SF == 64
-#define DATA_DIR BASE_PATH "sf64_column_bin/"
+#define DATA_DIR BASE_PATH "s64_columnar/"
 #define LO_LEN 384016864
 #define P_LEN 1400000
 #define S_LEN 128000
 #define C_LEN 1920000
 #define D_LEN 2556
 #elif SF == 128
-#define DATA_DIR BASE_PATH "sf128_column_bin/"
+#define DATA_DIR BASE_PATH "s128_columnar/"
 #define LO_LEN 768047048
 #define P_LEN 1600000
 #define S_LEN 256000
@@ -135,6 +131,12 @@ string lookup(string col_name) {
   return "";
 }
 
+/**
+  * @brief Loads a column from the data directory.
+  * @param col_name The name of the column to load.
+  * @param num_entries The number of entries in the column.
+  * @return A pointer to the loaded column. NULL on failure.
+  */
 template <typename T> T *loadColumn(string col_name, int num_entries) {
   T *h_col = new T[num_entries];
   string filename = DATA_DIR + lookup(col_name);
@@ -147,6 +149,13 @@ template <typename T> T *loadColumn(string col_name, int num_entries) {
   return h_col;
 }
 
+/**
+  * @brief Stores a column to the data directory.
+  * @param col_name The name of the column to store.
+  * @param num_entries The number of entries in the column.
+  * @param h_col The column to store.
+  * @return 0 on success, -1 on failure.
+  */
 template <typename T>
 int storeColumn(string col_name, int num_entries, int *h_col) {
   string filename = DATA_DIR + lookup(col_name);
@@ -158,13 +167,3 @@ int storeColumn(string col_name, int num_entries, int *h_col) {
   colData.write((char *)h_col, num_entries * sizeof(T));
   return 0;
 }
-
-/*int main() {*/
-// int *h_col = new int[10];
-// for (int i=0; i<10; i++) h_col[i] = i;
-// storeColumn<int>("test", 10, h_col);
-// int *l_col = loadColumn<int>("test", 10);
-// for (int i=0; i<10; i++) cout << l_col[i] << " ";
-// cout << endl;
-// return 0;
-/*}*/
