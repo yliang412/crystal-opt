@@ -120,7 +120,7 @@ int main() {
     const int BLOCK_THREADS = 256;
     const int ITEMS_PER_THREAD = 4;
     const int NUM_ITEMS = BLOCK_THREADS * ITEMS_PER_THREAD;  // Total items to insert
-    const int BLOOM_FILTER_SIZE = 64;  // Size in uint32_t units (32K bits total)
+    const int BLOOM_FILTER_SIZE = 64; 
     
     // Host arrays
     int h_keys[NUM_ITEMS];
