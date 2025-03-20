@@ -7,8 +7,11 @@ NVCC = nvcc
 
 # Check https://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/ for details.
 # The nvidia-smi command can also be used to check the GPU architecture.
-SM_TARGETS = -gencode=arch=compute_75,code=\"sm_75,compute_75\"
+SM_TARGETS = $(GENCODE_SM75)
 SM_DEF     = -DSM550
+
+GENCODE_SM75 = -gencode=arch=compute_75,code=\"sm_75,compute_75\"
+GENCODE_SM70 = -gencode=arch=compute_70,code=\"sm_70,compute_70\"
 
 NVCCFLAGS += --std=c++17 $(SM_DEF) -Xptxas="-dlcm=ca -v" -lineinfo -Xcudafe -\#
 
