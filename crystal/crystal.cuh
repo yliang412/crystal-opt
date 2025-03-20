@@ -29,4 +29,5 @@
 #include "reduce.cuh"
 #include "join.cuh"
 #include "term.cuh"
+#include "bloom.cuh"
 

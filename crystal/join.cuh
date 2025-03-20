@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #define HASH(X,Y,Z) ((X-Z) % Y)
 
 template<typename K, int BLOCK_THREADS, int ITEMS_PER_THREAD>

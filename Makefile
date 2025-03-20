@@ -10,7 +10,7 @@ NVCC = nvcc
 SM_TARGETS = -gencode=arch=compute_75,code=\"sm_75,compute_75\"
 SM_DEF     = -DSM550
 
-NVCCFLAGS += --std=c++11 $(SM_DEF) -Xptxas="-dlcm=ca -v" -lineinfo -Xcudafe -\#
+NVCCFLAGS += --std=c++17 $(SM_DEF) -Xptxas="-dlcm=ca -v" -lineinfo -Xcudafe -\#
 
 SRC = src
 BIN = bin
