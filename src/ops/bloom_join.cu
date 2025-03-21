@@ -122,7 +122,7 @@ TimeKeeper hashJoin(int* d_dim_key, int* d_dim_val, int* d_fact_fkey, int* d_fac
   uint32_t *bloom_filter = NULL;
   unsigned long long* res;
   int num_slots = num_dim;
-  int bloom_filter_word_size = num_slots / 4;
+  int bloom_filter_word_size = 6144 * 1024 / 4;
   float time_build, time_probe, time_memset, time_memset2, time_memset3;
 
   ALLOCATE(hash_table, sizeof(int) * 2 * num_dim);
