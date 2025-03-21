@@ -41,7 +41,7 @@ using namespace std;
 #define DEBUG 1
 
 template<int BLOCK_THREADS, int ITEMS_PER_THREAD>
-__global__ void build_kernel(int *dim_key, int *dim_val, int num_tuples, int *hash_table, int num_slots) {
+__global__ void build_kernel(int *dim_key, int *dim_val, int num_tuples, int *hash_table, int num_slots, uint32_t *bloom_filter, int bloom_filter_size) {
   int items[ITEMS_PER_THREAD];
   int items2[ITEMS_PER_THREAD];
   int selection_flags[ITEMS_PER_THREAD];
@@ -57,13 +57,14 @@ __global__ void build_kernel(int *dim_key, int *dim_val, int num_tuples, int *ha
   InitFlags<BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags);
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(dim_key + tile_offset, items, num_tile_items);
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(dim_val + tile_offset, items2, num_tile_items);
+  BlockBuildBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD, 1>(items, selection_flags, bloom_filter, bloom_filter_size, num_tile_items);
   BlockBuildSelectivePHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(items, items2, selection_flags, 
       hash_table, num_slots, num_tile_items);
 }
 
 template<int BLOCK_THREADS, int ITEMS_PER_THREAD>
 __global__ void probe_kernel(int *fact_fkey, int *fact_val, int num_tuples, 
-    int *hash_table, int num_slots, unsigned long long *res) {
+    int *hash_table, int num_slots, uint32_t *bloom_filter, int bloom_filter_size, unsigned long long *res) {
   // Load a tile striped across threads
   int selection_flags[ITEMS_PER_THREAD];
   int keys[ITEMS_PER_THREAD];
@@ -84,6 +85,7 @@ __global__ void probe_kernel(int *fact_fkey, int *fact_val, int num_tuples,
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(fact_fkey + tile_offset, keys, num_tile_items);
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(fact_val + tile_offset, vals, num_tile_items);
 
+  BlockProbeBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD, 1>(keys, selection_flags, bloom_filter, bloom_filter_size, num_tile_items);
   BlockProbeAndPHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(keys, join_vals, selection_flags,
       hash_table, num_slots, num_tile_items);
 
@@ -117,31 +119,36 @@ TimeKeeper hashJoin(int* d_dim_key, int* d_dim_val, int* d_fact_fkey, int* d_fac
   SETUP_TIMING();
 
   int* hash_table = NULL;
+  uint32_t *bloom_filter = NULL;
   unsigned long long* res;
   int num_slots = num_dim;
-  float time_build, time_probe, time_memset, time_memset2;
+  int bloom_filter_word_size = 6144 * 1024 / 4;
+  float time_build, time_probe, time_memset, time_memset2, time_memset3;
 
   ALLOCATE(hash_table, sizeof(int) * 2 * num_dim);
   ALLOCATE(res, sizeof(long long));
+  ALLOCATE(bloom_filter, sizeof(uint32_t) * bloom_filter_word_size);
 
   TIME_FUNC(cudaMemset(hash_table, 0, num_slots * sizeof(int) * 2), time_memset);
   TIME_FUNC(cudaMemset(res, 0, sizeof(long long)), time_memset2);
+  TIME_FUNC(cudaMemset(bloom_filter, 0, sizeof(uint32_t) * bloom_filter_word_size), time_memset3);
 
   int tile_items = 128*4;
 
-  TIME_FUNC((build_kernel<128, 4><<<(num_dim + tile_items - 1)/tile_items, 128>>>(d_dim_key, d_dim_val, num_dim, hash_table, num_slots)), time_build);
-  TIME_FUNC((probe_kernel<128, 4><<<(num_fact + tile_items - 1)/tile_items, 128>>>(d_fact_fkey, d_fact_val, num_fact, hash_table, num_slots, res)), time_probe);
+  TIME_FUNC((build_kernel<128, 4><<<(num_dim + tile_items - 1)/tile_items, 128>>>(d_dim_key, d_dim_val, num_dim, hash_table, num_slots, bloom_filter, bloom_filter_word_size)), time_build);
+  TIME_FUNC((probe_kernel<128, 4><<<(num_fact + tile_items - 1)/tile_items, 128>>>(d_fact_fkey, d_fact_val, num_fact, hash_table, num_slots, bloom_filter, bloom_filter_word_size, res)), time_probe);
 
 #if DEBUG
-  cout << "{" << "\"time_memset\":" << time_memset + time_memset2
+  cout << "{" << "\"time_memset\":" << time_memset + time_memset2 + time_memset3
       << ",\"time_build\"" << time_build
       << ",\"time_probe\":" << time_probe << "}" << endl;
 #endif
 
+  CLEANUP(bloom_filter);
   CLEANUP(hash_table);
   CLEANUP(res);
 
-  TimeKeeper t = {time_build, time_probe, time_memset, time_build + time_probe + time_memset + time_memset2};
+  TimeKeeper t = {time_build, time_probe, time_memset, time_build + time_probe + time_memset + time_memset2 + time_memset3};
   return t;
 }
 
