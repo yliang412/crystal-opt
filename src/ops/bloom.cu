@@ -116,7 +116,7 @@ __global__ void TestProbeBloomFilter(
 }
 
 void printBloomFilter(uint32_t* bloom_filter, int size) {
-    std::cout << "Bloom Filter: ";
+    std::cout << "Bloom Filter: " << std::endl;
     for (int i = 0; i < size; i++) {
         std::cout << "|";
         for (int j = 0; j < 32; j++) {
