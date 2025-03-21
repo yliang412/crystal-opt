@@ -115,12 +115,23 @@ __global__ void TestProbeBloomFilter(
     }
 }
 
+void printBloomFilter(uint32_t* bloom_filter, int size) {
+    std::cout << "Bloom Filter: ";
+    for (int i = 0; i < size; i++) {
+        std::cout << "|";
+        for (int j = 0; j < 32; j++) {
+            std::cout << ((bloom_filter[i] >> j) & 1) << "|";
+        }
+        std::cout << std::endl;
+    }
+}
+
 int main() {
     // Test parameters
     const int BLOCK_THREADS = 256;
     const int ITEMS_PER_THREAD = 4;
     const int NUM_ITEMS = BLOCK_THREADS * ITEMS_PER_THREAD;  // Total items to insert
-    const int BLOOM_FILTER_SIZE = 64; 
+    const int BLOOM_FILTER_SIZE = 16; 
     
     // Host arrays
     int h_keys[NUM_ITEMS];
@@ -174,6 +185,7 @@ int main() {
     // Build bloom filter - only insert values where i % 3 == 0
     TestBuildBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD><<<grid_size, BLOCK_THREADS>>>(
         d_keys, d_selection_flags, d_bloom_filter, BLOOM_FILTER_SIZE, NUM_ITEMS);
+
     
     // Check for kernel errors
     cudaError_t err = cudaGetLastError();
@@ -201,6 +213,10 @@ int main() {
     
     // Copy results back to host
     cudaMemcpy(h_probe_flags, d_probe_flags, NUM_ITEMS * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_bloom_filter, d_bloom_filter, BLOOM_FILTER_SIZE * sizeof(uint32_t), cudaMemcpyDeviceToHost);
+
+    // Print bloom filter
+    printBloomFilter(h_bloom_filter, BLOOM_FILTER_SIZE);
     
     // Verify results
     int true_positives = 0;
