@@ -4,10 +4,10 @@
 
 
 // Define multiple hash functions for Bloom Filter
-#define HASH1(X,Y,Z) ((X-Z) % Y)
-#define HASH2(X,Y,Z) (((X-Z) * 31) % Y)
-#define HASH3(X,Y,Z) (((X-Z) * 37 + 17) % Y)
-#define HASH4(X,Y,Z) (((X-Z) * 43 + 19) % Y)
+#define HASH1(X,Y,Z) ((X-Z) % (Y))
+#define HASH2(X,Y,Z) (((X-Z) * 31) % (Y))
+#define HASH3(X,Y,Z) (((X-Z) * 37 + 17) % (Y))
+#define HASH4(X,Y,Z) (((X-Z) * 43 + 19) % (Y))
 
 
 // Bloom Filter Build API - Sets bits in a bloom filter
