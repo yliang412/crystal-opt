@@ -57,7 +57,8 @@ __global__ void build_kernel(int *dim_key, int *dim_val, int num_tuples, int *ha
   InitFlags<BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags);
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(dim_key + tile_offset, items, num_tile_items);
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(dim_val + tile_offset, items2, num_tile_items);
-  BlockBuildBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD, 1>(items, selection_flags, bloom_filter, bloom_filter_size, num_tile_items);
+  BlockPredLTE<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items2, 1677720, selection_flags, num_tile_items);
+  BlockBuildBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items, selection_flags, bloom_filter, bloom_filter_size, num_tile_items);
   BlockBuildSelectivePHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(items, items2, selection_flags, 
       hash_table, num_slots, num_tile_items);
 }
@@ -85,7 +86,8 @@ __global__ void probe_kernel(int *fact_fkey, int *fact_val, int num_tuples,
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(fact_fkey + tile_offset, keys, num_tile_items);
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(fact_val + tile_offset, vals, num_tile_items);
 
-  BlockProbeBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD, 1>(keys, selection_flags, bloom_filter, bloom_filter_size, num_tile_items);
+  BlockProbeBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(keys, selection_flags, bloom_filter, bloom_filter_size, num_tile_items);
+  if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
   BlockProbeAndPHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(keys, join_vals, selection_flags,
       hash_table, num_slots, num_tile_items);
 

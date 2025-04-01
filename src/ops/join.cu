@@ -57,6 +57,7 @@ __global__ void build_kernel(int *dim_key, int *dim_val, int num_tuples, int *ha
   InitFlags<BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags);
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(dim_key + tile_offset, items, num_tile_items);
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(dim_val + tile_offset, items2, num_tile_items);
+  BlockPredLTE<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items2, 1677720, selection_flags, num_tile_items);
   BlockBuildSelectivePHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(items, items2, selection_flags, 
       hash_table, num_slots, num_tile_items);
 }
@@ -86,7 +87,7 @@ __global__ void probe_kernel(int *fact_fkey, int *fact_val, int num_tuples,
 
   BlockProbeAndPHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(keys, join_vals, selection_flags,
       hash_table, num_slots, num_tile_items);
-
+  
   #pragma unroll
   for (int ITEM = 0; ITEM < ITEMS_PER_THREAD; ++ITEM)
   {
@@ -123,6 +124,7 @@ TimeKeeper hashJoin(int* d_dim_key, int* d_dim_val, int* d_fact_fkey, int* d_fac
 
   ALLOCATE(hash_table, sizeof(int) * 2 * num_dim);
   ALLOCATE(res, sizeof(long long));
+  
 
   TIME_FUNC(cudaMemset(hash_table, 0, num_slots * sizeof(int) * 2), time_memset);
   TIME_FUNC(cudaMemset(res, 0, sizeof(long long)), time_memset2);
