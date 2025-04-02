@@ -138,6 +138,35 @@ int create_relation_fk(int*& keys, int*& vals, int num_tuples, const int maxid)
   return 0;
 }
 
+
+int create_relation_fk_only(int*& keys, int num_tuples, const int maxid)
+{
+  int i, iters, remainder;
+
+  check_seed();
+  keys = (int*)_mm_malloc(num_tuples * sizeof(int), 256);
+
+  if (!keys) {
+    perror("out of memory");
+    return -1;
+  }
+
+  // alternative generation method
+  iters = num_tuples / maxid;
+  for (i = 0; i < iters; i++) {
+    int* tuples = keys + maxid * i;
+    random_unique_gen(tuples, maxid);
+  }
+
+  // if num_tuples is not an exact multiple of maxid
+  remainder = num_tuples % maxid;
+  if (remainder > 0) {
+    int* tuples = keys + maxid * iters;
+    random_unique_gen(tuples, remainder);
+  }
+  return 0;
+}
+
 /*
 typedef struct rand_state_64 {
   uint64_t num[313];
