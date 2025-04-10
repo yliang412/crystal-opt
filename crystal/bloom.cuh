@@ -22,7 +22,7 @@ __device__ __forceinline__ void BlockBuildDirectBloomFilter(
       int hash1 = HASH1(items[ITEM], bloom_filter_size * 32, keys_min);
       
       // Set bit in the bloom filter
-      atomicOr(&bloom_filter[hash1 / 32], 1u << (hash1 % 32));
+      atomicOr(&bloom_filter[hash1 >> 5], 1u << (hash1 & 31));
     }
   }
 }
@@ -46,7 +46,7 @@ __device__ __forceinline__ void BlockBuildDirectBloomFilter(
         int hash1 = HASH1(items[ITEM], bloom_filter_size * 32, keys_min);
         
         // Set bit in the bloom filter
-        atomicOr(&bloom_filter[hash1 / 32], 1u << (hash1 % 32));
+        atomicOr(&bloom_filter[hash1 >> 5], 1u << (hash1 & 31));
       }
     }
   }
@@ -102,7 +102,7 @@ __device__ __forceinline__ void BlockProbeDirectBloomFilter(
       int hash1 = HASH1(items[ITEM], bloom_filter_size * 32, keys_min);
       
       // Check if bit is set
-      bool bit1_set = (bloom_filter[hash1 / 32] & (1u << (hash1 % 32))) != 0;
+      bool bit1_set = (bloom_filter[hash1 >> 5] & (1u << (hash1 & 31))) != 0;
       
       // Item possibly exists if bit is set (may be false positive)
       selection_flags[ITEM] = bit1_set ? 1 : 0;
@@ -129,7 +129,7 @@ __device__ __forceinline__ void BlockProbeDirectBloomFilter(
         int hash1 = HASH1(items[ITEM], bloom_filter_size * 32, keys_min);
         
         // Check if bit is set
-        bool bit1_set = (bloom_filter[hash1 / 32] & (1u << (hash1 % 32))) != 0;
+        bool bit1_set = (bloom_filter[hash1 >> 5] & (1u << (hash1 & 31))) != 0;
         
         // Item possibly exists if bit is set (may be false positive)
         selection_flags[ITEM] = bit1_set ? 1 : 0;
