@@ -2,8 +2,10 @@
 
 #include <cstdint>
 
+
 // Define single hash function for Bloom Filter
 #define HASH1(X,Y,Z) ((X-Z) % (Y))
+
 
 // Bloom Filter Build API - Sets bits in a bloom filter
 template<typename K, int BLOCK_THREADS, int ITEMS_PER_THREAD>

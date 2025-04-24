@@ -42,6 +42,7 @@ using namespace std;
 
 template<int BLOCK_THREADS, int ITEMS_PER_THREAD>
 __global__ void build_kernel(int *dim_key, int *dim_val, int num_tuples, int *hash_table, int num_slots, uint32_t *bloom_filter, int bloom_filter_size, int num_select) {
+
   int items[ITEMS_PER_THREAD];
   int items2[ITEMS_PER_THREAD];
   int selection_flags[ITEMS_PER_THREAD];
@@ -175,6 +176,7 @@ int main(int argc, char** argv)
   int num_select         = num_dim / 100;
   int num_bloom_filter_bits = 6144 * 1024;
 
+
   // Initialize command line
   CommandLineArgs args(argc, argv);
   args.GetCmdLineArgument("n", num_fact);
@@ -197,7 +199,7 @@ int main(int argc, char** argv)
         "\n", argv[0]);
     exit(0);
   }
-
+  
   printf("Running with %d fact, %d dim, num_select: %d, num_bloom_filter_bits: %d, %d trials\n", num_fact, num_dim, num_select, num_bloom_filter_bits, num_trials);
 
   // Initialize device
