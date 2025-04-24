@@ -83,9 +83,6 @@ dummy_initialize(int*& arr, int num_tuples) {
     for (int i = 0; i < num_tuples; i++) {
         arr[i] = i;
     }
-
-    /* randomly shuffle elements */
-    knuth_shuffle(arr, num_tuples);
 }
 
 int
