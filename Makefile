@@ -12,10 +12,13 @@ NVCC = nvcc
 SM_TARGETS = $(GENCODE_SM75)
 # Uncomment the following line to use the SM70 architecture
 # SM_TARGETS = $(GENCODE_SM70)
+# Uncomment the following line to use the SM89 architecture
+# SM_TARGETS = $(GENCODE_SM89)
 SM_DEF     = -DSM550
 
 GENCODE_SM75 = -gencode=arch=compute_75,code=\"sm_75,compute_75\"
 GENCODE_SM70 = -gencode=arch=compute_70,code=\"sm_70,compute_70\"
+GENCODE_SM89 = -gencode=arch=compute_89,code=\"sm_89,compute_89\"
 
 NVCCFLAGS += --std=c++17 $(SM_DEF) -Xptxas="-dlcm=ca -v" -lineinfo -Xcudafe -\#
 

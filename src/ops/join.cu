@@ -41,7 +41,7 @@ using namespace std;
 #define DEBUG 1
 
 template<int BLOCK_THREADS, int ITEMS_PER_THREAD>
-__global__ void build_kernel(int *dim_key, int *dim_val, int num_tuples, int *hash_table, int num_slots) {
+__global__ void build_kernel(int *dim_key, int *dim_val, int num_tuples, int *hash_table, int num_slots, int num_select) {
   int items[ITEMS_PER_THREAD];
   int items2[ITEMS_PER_THREAD];
   int selection_flags[ITEMS_PER_THREAD];
@@ -57,6 +57,7 @@ __global__ void build_kernel(int *dim_key, int *dim_val, int num_tuples, int *ha
   InitFlags<BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags);
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(dim_key + tile_offset, items, num_tile_items);
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(dim_val + tile_offset, items2, num_tile_items);
+  BlockPredLTE<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items2, num_select, selection_flags, num_tile_items);
   BlockBuildSelectivePHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(items, items2, selection_flags, 
       hash_table, num_slots, num_tile_items);
 }
@@ -86,7 +87,7 @@ __global__ void probe_kernel(int *fact_fkey, int *fact_val, int num_tuples,
 
   BlockProbeAndPHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(keys, join_vals, selection_flags,
       hash_table, num_slots, num_tile_items);
-
+  
   #pragma unroll
   for (int ITEM = 0; ITEM < ITEMS_PER_THREAD; ++ITEM)
   {
@@ -113,7 +114,7 @@ struct TimeKeeper {
   float time_total;
 };
 
-TimeKeeper hashJoin(int* d_dim_key, int* d_dim_val, int* d_fact_fkey, int* d_fact_val, int num_dim, int num_fact, cub::CachingDeviceAllocator&  g_allocator) {
+TimeKeeper hashJoin(int* d_dim_key, int* d_dim_val, int* d_fact_fkey, int* d_fact_val, int num_dim, int num_fact, int num_select, cub::CachingDeviceAllocator&  g_allocator) {
   SETUP_TIMING();
 
   int* hash_table = NULL;
@@ -123,13 +124,14 @@ TimeKeeper hashJoin(int* d_dim_key, int* d_dim_val, int* d_fact_fkey, int* d_fac
 
   ALLOCATE(hash_table, sizeof(int) * 2 * num_dim);
   ALLOCATE(res, sizeof(long long));
+  
 
   TIME_FUNC(cudaMemset(hash_table, 0, num_slots * sizeof(int) * 2), time_memset);
   TIME_FUNC(cudaMemset(res, 0, sizeof(long long)), time_memset2);
 
   int tile_items = 128*4;
 
-  TIME_FUNC((build_kernel<128, 4><<<(num_dim + tile_items - 1)/tile_items, 128>>>(d_dim_key, d_dim_val, num_dim, hash_table, num_slots)), time_build);
+  TIME_FUNC((build_kernel<128, 4><<<(num_dim + tile_items - 1)/tile_items, 128>>>(d_dim_key, d_dim_val, num_dim, hash_table, num_slots, num_select)), time_build);
   TIME_FUNC((probe_kernel<128, 4><<<(num_fact + tile_items - 1)/tile_items, 128>>>(d_fact_fkey, d_fact_val, num_fact, hash_table, num_slots, res)), time_probe);
 
 #if DEBUG
@@ -163,12 +165,14 @@ int main(int argc, char** argv)
   int num_fact           = 256 * 1<<20;
   int num_dim            = 16 * 1<<20;
   int num_trials         = 3;
+  int num_select         = num_dim / 100;
 
   // Initialize command line
   CommandLineArgs args(argc, argv);
   args.GetCmdLineArgument("n", num_fact);
   args.GetCmdLineArgument("d", num_dim);
   args.GetCmdLineArgument("t", num_trials);
+  args.GetCmdLineArgument("s", num_select);
 
   // Print usage
   if (args.CheckCmdLineFlag("help"))
@@ -177,18 +181,15 @@ int main(int argc, char** argv)
         "[--n=<num fact>] "
         "[--d=<num dim>] "
         "[--t=<num trials>] "
+        "[--s=<num select>] "
         "[--device=<device-id>] "
         "[--v] "
         "\n", argv[0]);
     exit(0);
   }
 
-  int log2 = 0;
-  int num_dim_dup = num_dim >> 1;
-  while (num_dim_dup) {
-    num_dim_dup >>= 1;
-    log2 += 1;
-  }
+  printf("Running with %d fact, %d dim, num_select: %d, %d trials\n", num_fact, num_dim, num_select, num_trials);
+
 
   // Initialize device
   CubDebugExit(args.DeviceInit());
@@ -217,14 +218,11 @@ int main(int argc, char** argv)
   CubDebugExit(cudaMemcpy(d_fact_val, h_fact_val, sizeof(int) * num_fact, cudaMemcpyHostToDevice));
 
   for (int j = 0; j < num_trials; j++) {
-    TimeKeeper t = hashJoin(d_dim_key, d_dim_val, d_fact_fkey, d_fact_val, num_dim, num_fact, g_allocator);
+    TimeKeeper t = hashJoin(d_dim_key, d_dim_val, d_fact_fkey, d_fact_val, num_dim, num_fact, num_select, g_allocator);
     cout<< "{"
         << "\"num_dim\":" << num_dim
         << ",\"num_fact\":" << num_fact
-        << ",\"radix\":" << 0
-        << ",\"time_partition_build\":" << 0
-        << ",\"time_partition_probe\":" << 0
-        << ",\"time_partition_total\":" << 0
+        << ",\"num_select\":" << num_select
         << ",\"time_build\":" << t.time_build
         << ",\"time_probe\":" << t.time_probe
         << ",\"time_extra\":" << t.time_extra
