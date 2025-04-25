@@ -5,10 +5,10 @@
 using namespace std;
 
 /** @brief Defines the scale factor here. */
-#define SF 1
+//#define SF 1
 
-#define BASE_PATH "/afs/cs.cmu.edu/user/yuchenl3/scs-workspace/crystal-opt/test/ssb/data/"
-// #define BASE_PATH "/root/15740/crystal-opt/test/ssb/data/"
+//#define BASE_PATH "/afs/cs.cmu.edu/user/yuchenl3/scs-workspace/crystal-opt/test/ssb/data/"
+#define BASE_PATH "/root/15740/crystal-opt/test/ssb/data/"
 
 #if SF == 1
 #define DATA_DIR BASE_PATH "s1_columnar/"

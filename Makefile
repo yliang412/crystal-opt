@@ -9,9 +9,9 @@ NVCC = nvcc
 # The nvidia-smi command can also be used to check the GPU architecture.
 
 # Uncomment the following line to use the SM75 architecture
-SM_TARGETS = $(GENCODE_SM75)
+# SM_TARGETS = $(GENCODE_SM75)
 # Uncomment the following line to use the SM70 architecture
-# SM_TARGETS = $(GENCODE_SM70)
+SM_TARGETS = $(GENCODE_SM70)
 # Uncomment the following line to use the SM89 architecture
 # SM_TARGETS = $(GENCODE_SM89)
 SM_DEF     = -DSM550
@@ -45,7 +45,7 @@ setup:
 	fi
 	mkdir -p bin/ssb obj/ssb
 	mkdir -p bin/ops obj/ops
-	mkdir -p bin/jo_q33 obj/jo_q3
+	mkdir -p bin/jo_q33 obj/jo_q33
 
 jo_q33_naive: $(BIN)/jo_q33/0-naive $(BIN)/jo_q33/1-naive $(BIN)/jo_q33/2-naive $(BIN)/jo_q33/3-naive $(BIN)/jo_q33/4-naive $(BIN)/jo_q33/5-naive
 jo_q33_lip:  $(BIN)/jo_q33/0-lip $(BIN)/jo_q33/1-lip $(BIN)/jo_q33/2-lip $(BIN)/jo_q33/3-lip $(BIN)/jo_q33/4-lip $(BIN)/jo_q33/5-lip
