@@ -1,3 +1,12 @@
+lip-gpu
+=================
+Implementing Lookahead Information Passing on GPU.
+
+- `crystal/bloom.cuh` contains the newly added bloom filter primitives.
+- `src/ops/bloom.cu` contains the test for the bloom filter implementation.
+- `src/ops/bloom_join.cu` contains our single join benchmark.
+- `src/jo_q33/*-{naive,lip}.cu` contains our SSB Q3.3 join order robustness benchmark.
+
 Crystal-Opt GPU Library
 =================
 
@@ -27,8 +36,3 @@ make bin/ssb/q11
 ./bin/ssb/q11
 ```
 
-Paper
-----
-GPU Database Systems Characterization and Optimization VLDB'24  
-Jiashen Cao, Rathijit Sen, Matteo Interlandi, Joy Arulraj, Hyesoon Kim  
-https://dl.acm.org/doi/pdf/10.14778/3632093.3632107

@@ -53,3 +53,6 @@ jo_q33: jo_q33_naive jo_q33_lip
 
 clean:
 	rm -rf bin/* obj/*
+
+submit:
+	git format-patch 8181d0da8b639af18d2a221f6c5ef7e5662faf3d..HEAD --stdout > lip-gpu.patch
