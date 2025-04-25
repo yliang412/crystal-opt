@@ -151,7 +151,7 @@ TimeKeeper hashJoin(int* d_dim_key, int* d_dim_val, int* d_fact_fkey, int* d_fac
   CLEANUP(hash_table);
   CLEANUP(res);
 
-  TimeKeeper t = {time_build, time_probe, time_memset, time_build + time_probe + time_memset + time_memset2 + time_memset3};
+  TimeKeeper t = {time_build, time_probe, time_memset + time_memset2 + time_memset3, time_build + time_probe + time_memset + time_memset2 + time_memset3};
   return t;
 }
 
@@ -170,19 +170,17 @@ cub::CachingDeviceAllocator  g_allocator(true);  // Caching allocator for device
 //---------------------------------------------------------------------
 int main(int argc, char** argv)
 {
-  int num_fact           = 256 * 1<<20;
-  int num_dim            = 16 * 1<<20;
-  int num_trials         = 3;
-  int num_select         = num_dim / 100;
-  int num_bloom_filter_bits = 6144 * 1024;
-
-
   // Initialize command line
   CommandLineArgs args(argc, argv);
+  int num_fact           = 256 * 1<<20;
   args.GetCmdLineArgument("n", num_fact);
+  int num_dim            = 16 * 1<<20;
   args.GetCmdLineArgument("d", num_dim);
+  int num_trials         = 3;
   args.GetCmdLineArgument("t", num_trials);
+  int num_select         = num_dim / 100;
   args.GetCmdLineArgument("s", num_select);
+  int num_bloom_filter_bits = 6144 * 1024;
   args.GetCmdLineArgument("b", num_bloom_filter_bits);
 
   // Print usage
