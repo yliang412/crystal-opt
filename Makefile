@@ -45,6 +45,11 @@ setup:
 	fi
 	mkdir -p bin/ssb obj/ssb
 	mkdir -p bin/ops obj/ops
+	mkdir -p bin/jo_q33 obj/jo_q3
+
+jo_q33_naive: $(BIN)/jo_q33/0-naive $(BIN)/jo_q33/1-naive $(BIN)/jo_q33/2-naive $(BIN)/jo_q33/3-naive $(BIN)/jo_q33/4-naive $(BIN)/jo_q33/5-naive
+jo_q33_lip:  $(BIN)/jo_q33/0-lip $(BIN)/jo_q33/1-lip $(BIN)/jo_q33/2-lip $(BIN)/jo_q33/3-lip $(BIN)/jo_q33/4-lip $(BIN)/jo_q33/5-lip
+jo_q33: jo_q33_naive jo_q33_lip
 
 clean:
 	rm -rf bin/* obj/*

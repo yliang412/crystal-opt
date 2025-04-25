@@ -1,3 +1,5 @@
+// 3 - LIP, Join Order: D -> C -> S
+
 // Ensure printing of CUDA runtime errors to console
 #define CUB_STDERR
 
@@ -53,39 +55,53 @@ __global__ void probe(int *lo_orderdate, int *lo_custkey, int *lo_suppkey,
 
   InitFlags<BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags);
 
-  BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(lo_suppkey + tile_offset,
-                                                  items, num_tile_items);
-  #if BLOOM 
-  BlockProbeBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items, selection_flags, bf_s, bf_s_size, num_tile_items);
-  if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
-  #endif
-  BlockPredLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
-      lo_custkey + tile_offset, items2, num_tile_items, selection_flags);
-  if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
 
-  #if BLOOM
-  BlockProbeBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items2, selection_flags, bf_c, bf_c_size, num_tile_items);
+  // BEGIN bf_d bloom
+  BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
+      lo_orderdate + tile_offset, items3, num_tile_items);
   if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
-  #endif
-
-
-  BlockPredLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
-      lo_orderdate + tile_offset, items3, num_tile_items, selection_flags);
-  if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
-
   #if BLOOM
   BlockProbeBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items3, selection_flags, bf_d, bf_d_size, num_tile_items);
   if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
   #endif
-  BlockProbeAndPHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(
-      items, s_nation, selection_flags, ht_s, s_len, num_tile_items);
+  // END bf_d bloom
+
+  // BEGIN bf_c bloom
+  BlockPredLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
+    lo_custkey + tile_offset, items2, num_tile_items, selection_flags);
   if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
-  BlockProbeAndPHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(
-      items2, c_nation, selection_flags, ht_c, c_len, num_tile_items);
+  #if BLOOM
+  BlockProbeBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items2, selection_flags, bf_c, bf_c_size, num_tile_items);
   if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
+  #endif
+  // END bf_c bloom
+
+  // BEGIN bf_s bloom
+  BlockPredLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(lo_suppkey + tile_offset,
+    items, num_tile_items, selection_flags);
+  #if BLOOM 
+  BlockProbeBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items, selection_flags, bf_s, bf_s_size, num_tile_items);
+  if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
+  #endif
+  // END bf_s bloom
+
+  // BEGIN ht_d hash
   BlockProbeAndPHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(
     items3, year, selection_flags, ht_d, d_len, 19920101, num_tile_items);
   if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
+  // END ht_d hash
+
+  // BEGIN ht_c hash
+  BlockProbeAndPHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(
+    items2, c_nation, selection_flags, ht_c, c_len, num_tile_items);
+  if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
+  // END ht_c hash
+
+  // BEGIN ht_s hash
+  BlockProbeAndPHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(
+    items, s_nation, selection_flags, ht_s, s_len, num_tile_items);
+  if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
+  // END ht_s hash
 
   BlockPredLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
       lo_revenue + tile_offset, revenue, num_tile_items, selection_flags);
@@ -224,10 +240,6 @@ float runQuery(int *lo_orderdate, int *lo_custkey, int *lo_suppkey,
   st = chrono::high_resolution_clock::now();
 
   cudaEventRecord(start, 0);
-
-  cudaEvent_t k_start, k_stop; 
-  cudaEventCreate(&k_start); 
-  cudaEventCreate(&k_stop);
 
   int *ht_d, *ht_c, *ht_s;
   int d_val_len = 19981230 - 19920101 + 1;
