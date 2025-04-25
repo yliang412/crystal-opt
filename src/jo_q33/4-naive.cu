@@ -1,4 +1,4 @@
-// 2 - Naive, Join Order: C -> D -> S
+// 4 - Naive, Join Order: C -> D -> S
 
 // Ensure printing of CUDA runtime errors to console
 #define CUB_STDERR
@@ -13,8 +13,8 @@
 
 #include "crystal/crystal.cuh"
 
-#include "gpu_utils.h"
-#include "ssb_utils.h"
+#include "../ssb/gpu_utils.h"
+#include "../ssb/ssb_utils.h"
 
 using namespace std;
 
