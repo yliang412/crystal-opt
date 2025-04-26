@@ -244,11 +244,9 @@ float runQuery(int *lo_orderdate, int *lo_custkey, int *lo_suppkey,
   int *ht_d, *ht_c, *ht_s;
   int d_val_len = 19981230 - 19920101 + 1;
   uint32_t *bf_s, *bf_c, *bf_d;
- 
-  constexpr int bf_size = 1024 * 1024 * 4 / 4;
-  constexpr int bf_s_size = bf_size;
-  constexpr int bf_c_size = bf_size;
-  constexpr int bf_d_size = bf_size;
+  int bf_s_size = (int) (roundUpToPowerOfTwo((uint32_t) s_len) / 32);
+  int bf_c_size = (int) (roundUpToPowerOfTwo((uint32_t) c_len) / 32);
+  int bf_d_size = (int) (roundUpToPowerOfTwo((uint32_t) d_val_len) / 32);
   CubDebugExit(
       g_allocator.DeviceAllocate((void **)&ht_d, 2 * d_val_len * sizeof(int)));
   CubDebugExit(
@@ -268,7 +266,6 @@ float runQuery(int *lo_orderdate, int *lo_custkey, int *lo_suppkey,
   CubDebugExit(cudaMemset(bf_d, 0, bf_d_size * sizeof(uint32_t)));
   CubDebugExit(cudaMemset(bf_s, 0, bf_s_size * sizeof(uint32_t)));
   CubDebugExit(cudaMemset(bf_c, 0, bf_c_size * sizeof(uint32_t)));
-
 
   int tile_items = 128 * 4;
   build_hashtable_s<128, 4><<<(s_len + tile_items - 1) / tile_items, 128>>>(
