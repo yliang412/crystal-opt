@@ -172,13 +172,13 @@ int main(int argc, char** argv)
 {
   // Initialize command line
   CommandLineArgs args(argc, argv);
-  int num_fact           = 256 * 1<<20;
+  int num_fact           = 1<<30;
   args.GetCmdLineArgument("n", num_fact);
   int num_dim            = 16 * 1<<20;
   args.GetCmdLineArgument("d", num_dim);
   int num_trials         = 3;
   args.GetCmdLineArgument("t", num_trials);
-  int num_select         = num_dim / 100;
+  int num_select         = num_dim / 128;
   args.GetCmdLineArgument("s", num_select);
   int num_bloom_filter_bits = 6144 * 1024;
   args.GetCmdLineArgument("b", num_bloom_filter_bits);

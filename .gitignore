@@ -1,5 +1,5 @@
 /bin/
 /cub/
-/eval/
+/logs/
 .idea/
-.txt
+*.txt
