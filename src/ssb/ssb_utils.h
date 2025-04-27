@@ -66,6 +66,13 @@ using namespace std;
 #define S_LEN 256000
 #define C_LEN 3840000
 #define D_LEN 2556
+#elif SF == 256
+#define DATA_DIR BASE_PATH "s256_columnar/"
+#define LO_LEN 1536094096
+#define P_LEN 1800000
+#define S_LEN 512000
+#define C_LEN 7680000
+#define D_LEN 2556
 #else // 20
 #define DATA_DIR BASE_PATH "s20_columnar/"
 #define LO_LEN 119994746
