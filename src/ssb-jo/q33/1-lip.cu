@@ -13,8 +13,8 @@
 
 #include "crystal/crystal.cuh"
 
-#include "../ssb/gpu_utils.h"
-#include "../ssb/ssb_utils.h"
+#include "../../ssb/gpu_utils.h"
+#include "../../ssb/ssb_utils.h"
 
 using namespace std;
 

@@ -25,6 +25,7 @@ NVCCFLAGS += --std=c++17 $(SM_DEF) -Xptxas="-dlcm=ca -v" -lineinfo -Xcudafe -\#
 SRC = src
 BIN = bin
 OBJ = obj
+SSB_JO_BIN = bin/ssb-jo
 
 CUB_DIR = cub/
 
@@ -45,10 +46,14 @@ setup:
 	fi
 	mkdir -p bin/ssb obj/ssb
 	mkdir -p bin/ops obj/ops
-	mkdir -p bin/jo_q33 obj/jo_q33
+	mkdir -p bin/ssb-jo obj/ssb-jo
+	for i in 11 12 13 21 22 23 31 32 33 41 42 43; do \
+		mkdir -p bin/ssb-jo/q$$i; \
+		mkdir -p obj/ssb-jo/q$$i; \
+	done
 
-jo_q33_naive: $(BIN)/jo_q33/0-naive $(BIN)/jo_q33/1-naive $(BIN)/jo_q33/2-naive $(BIN)/jo_q33/3-naive $(BIN)/jo_q33/4-naive $(BIN)/jo_q33/5-naive
-jo_q33_lip:  $(BIN)/jo_q33/0-lip $(BIN)/jo_q33/1-lip $(BIN)/jo_q33/2-lip $(BIN)/jo_q33/3-lip $(BIN)/jo_q33/4-lip $(BIN)/jo_q33/5-lip
+jo_q33_naive: $(SSB_JO_BIN)/q33/0-naive $(SSB_JO_BIN)/q33/1-naive $(SSB_JO_BIN)/q33/2-naive $(SSB_JO_BIN)/q33/3-naive $(SSB_JO_BIN)/q33/4-naive $(SSB_JO_BIN)/q33/5-naive
+jo_q33_lip: $(SSB_JO_BIN)/q33/0-lip $(SSB_JO_BIN)/q33/1-lip $(SSB_JO_BIN)/q33/2-lip $(SSB_JO_BIN)/q33/3-lip $(SSB_JO_BIN)/q33/4-lip $(SSB_JO_BIN)/q33/5-lip
 jo_q33: jo_q33_naive jo_q33_lip
 
 clean:
