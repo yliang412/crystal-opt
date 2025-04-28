@@ -52,10 +52,14 @@ setup:
 		mkdir -p obj/ssb-jo/q$$i; \
 	done
 
-jo_q33_naive: $(SSB_JO_BIN)/q33/0-naive $(SSB_JO_BIN)/q33/1-naive $(SSB_JO_BIN)/q33/2-naive $(SSB_JO_BIN)/q33/3-naive $(SSB_JO_BIN)/q33/4-naive $(SSB_JO_BIN)/q33/5-naive
-jo_q33_lip: $(SSB_JO_BIN)/q33/0-lip $(SSB_JO_BIN)/q33/1-lip $(SSB_JO_BIN)/q33/2-lip $(SSB_JO_BIN)/q33/3-lip $(SSB_JO_BIN)/q33/4-lip $(SSB_JO_BIN)/q33/5-lip
-jo_q33: jo_q33_naive jo_q33_lip
-
+ssb-jo: setup
+	@for q in 21 22 23 31 33; do \
+		for n in 0 1 2 3 4 5; do \
+			for method in lip naive; do \
+				$(MAKE) ./bin/ssb-jo/q$$q/$$n-$$method; \
+			done; \
+		done; \
+	done
 clean:
 	rm -rf bin/* obj/*
 

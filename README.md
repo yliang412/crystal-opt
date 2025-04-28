@@ -7,6 +7,20 @@ Implementing Lookahead Information Passing on GPU.
 - `src/ops/bloom_join.cu` contains our single join benchmark.
 - `src/jo_q33/*-{naive,lip}.cu` contains our SSB Q3.3 join order robustness benchmark.
 
+Run the following command to compile the ssb-jo benchmark.
+
+```
+make ssb-jo
+```
+
+Run the following command to execute the ssb-jo benchmark:
+
+```
+sh run_ssb_jo.sh
+```
+
+
+
 Crystal-Opt GPU Library
 =================
 
