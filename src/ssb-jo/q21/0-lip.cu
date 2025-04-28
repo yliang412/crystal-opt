@@ -81,8 +81,6 @@ __global__ void probe(int *lo_orderdate, int *lo_partkey, int *lo_suppkey,
   if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
   // END: bf_s bloom
 
-  
-
   // BEGIN: bf_p bloom
   BlockPredLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
       lo_partkey + tile_offset, items2, num_tile_items, selection_flags);  
