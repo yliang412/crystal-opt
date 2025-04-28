@@ -199,6 +199,7 @@ float runQuery(int *lo_orderdate, int *lo_custkey, int *lo_suppkey,
 
   CubDebugExit(cudaMemset(ht_d, 0, 2 * d_val_len * sizeof(int)));
   CubDebugExit(cudaMemset(ht_s, 0, 2 * s_len * sizeof(int)));
+  CubDebugExit(cudaMemset(ht_c, 0, 2 * c_len * sizeof(int)));
 
   int tile_items = 128 * 4;
   build_hashtable_s<128, 4><<<(s_len + tile_items - 1) / tile_items, 128>>>(
