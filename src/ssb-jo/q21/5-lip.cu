@@ -231,6 +231,9 @@ float runQuery(int *lo_orderdate, int *lo_partkey, int *lo_suppkey,
   CubDebugExit(cudaMemset(ht_d, 0, 2 * d_val_len * sizeof(int)));
   CubDebugExit(cudaMemset(ht_p, 0, 2 * p_len * sizeof(int)));
   CubDebugExit(cudaMemset(ht_s, 0, 2 * s_len * sizeof(int)));
+  CubDebugExit(cudaMemset(bf_s, 0, bf_s_size * sizeof(uint32_t)));
+  CubDebugExit(cudaMemset(bf_p, 0, bf_p_size * sizeof(uint32_t)));
+  CubDebugExit(cudaMemset(bf_d, 0, bf_d_size * sizeof(uint32_t)));
 
   int tile_items = 128 * 4;
 

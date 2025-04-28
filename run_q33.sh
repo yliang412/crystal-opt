@@ -5,6 +5,6 @@ do
   for method in naive lip
   do
     exp="${i}-${method}"
-    ./bin/jo_q33/${exp} --t=5 > "${exp}.txt"
+    ./bin/ssb-jo/q33/${exp} --t=5 > "${exp}.txt"
   done
 done

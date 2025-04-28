@@ -1,27 +1,5 @@
 // 0 - LIP, Join Order: S -> P -> D
 
-// MIT License
-
-// Copyright (c) 2023 Jiashen Cao
-
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-
 // Ensure printing of CUDA runtime errors to console
 #define CUB_STDERR
 
@@ -253,6 +231,9 @@ float runQuery(int *lo_orderdate, int *lo_partkey, int *lo_suppkey,
   CubDebugExit(cudaMemset(ht_d, 0, 2 * d_val_len * sizeof(int)));
   CubDebugExit(cudaMemset(ht_p, 0, 2 * p_len * sizeof(int)));
   CubDebugExit(cudaMemset(ht_s, 0, 2 * s_len * sizeof(int)));
+  CubDebugExit(cudaMemset(bf_s, 0, bf_s_size * sizeof(uint32_t)));
+  CubDebugExit(cudaMemset(bf_p, 0, bf_p_size * sizeof(uint32_t)));
+  CubDebugExit(cudaMemset(bf_d, 0, bf_d_size * sizeof(uint32_t)));
 
   int tile_items = 128 * 4;
 
