@@ -80,7 +80,7 @@ __global__ void probe(int *lo_orderdate, int *lo_custkey, int *lo_suppkey,
       lo_orderdate + tile_offset, items3, num_tile_items, selection_flags);
   if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
   #if BLOOM
-  BlockProbeBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items3, selection_flags, bf_d, bf_d_size, num_tile_items);
+  BlockProbeBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items3, selection_flags, bf_d, bf_d_size, 19920101, num_tile_items);
   if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
   #endif
   // END bf_d bloom
@@ -213,7 +213,7 @@ __global__ void build_hashtable_d(int *dim_key, int *dim_val, int num_tuples,
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(dim_key + tile_offset, items2,
                                                   num_tile_items);
   #if BLOOM
-  BlockBuildBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items2, selection_flags, bf, bf_size, num_tile_items);
+  BlockBuildBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items2, selection_flags, bf, bf_size, val_min, num_tile_items);
   #endif
   BlockBuildSelectivePHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(
       items2, items, selection_flags, hash_table, num_slots, 19920101,

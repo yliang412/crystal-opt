@@ -29,9 +29,14 @@ template <int BLOCK_THREADS, int ITEMS_PER_THREAD>
 __global__ void probe(int *lo_orderdate, int *lo_partkey, int *lo_suppkey,
                       int *lo_revenue, int lo_len, int *ht_s, int s_len,
                       int *ht_p, int p_len, int *ht_d, int d_len, 
+                      uint32_t *bf_s, int bf_s_size,
+                      uint32_t *bf_p, int bf_p_size,
+                      uint32_t *bf_d, int bf_d_size,
                       int *res) {
   // Load a tile striped across threads
   int items[ITEMS_PER_THREAD];
+  int items2[ITEMS_PER_THREAD];
+  int items3[ITEMS_PER_THREAD];
   int selection_flags[ITEMS_PER_THREAD];
   int brand[ITEMS_PER_THREAD];
   int year[ITEMS_PER_THREAD];
@@ -47,27 +52,42 @@ __global__ void probe(int *lo_orderdate, int *lo_partkey, int *lo_suppkey,
 
   InitFlags<BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags);
 
-  // BEGIN: ht_s hash
+  // BEGIN: bf_s bloom  
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(lo_suppkey + tile_offset,
                                                   items, num_tile_items);
+  BlockProbeBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items, selection_flags, bf_s, bf_s_size, num_tile_items);
+  if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
+  // END: bf_s bloom
+
+  // BEGIN: bf_p bloom
+  BlockPredLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
+      lo_partkey + tile_offset, items2, num_tile_items, selection_flags);  
+  BlockProbeBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items2, selection_flags, bf_p, bf_p_size, num_tile_items);
+  if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
+  // END: bf_p bloom
+
+  // BEGIN: bf_d bloom
+  BlockPredLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
+    lo_orderdate + tile_offset, items3, num_tile_items, selection_flags);
+  BlockProbeBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items3, selection_flags, bf_d, bf_d_size, 19920101, num_tile_items);
+  if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
+  // END: bf_d bloom
+
+  // BEGIN: ht_s hash
   BlockProbeAndPHT_1<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
-      items, selection_flags, ht_s, s_len, num_tile_items);
+    items, selection_flags, ht_s, s_len, num_tile_items);
   if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
   // END ht_s hash
 
   // BEGIN: ht_p hash
-  BlockPredLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
-      lo_partkey + tile_offset, items, num_tile_items, selection_flags);  
   BlockProbeAndPHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(
-      items, brand, selection_flags, ht_p, p_len, num_tile_items);
+      items2, brand, selection_flags, ht_p, p_len, num_tile_items);
   if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
   // END ht_p hash
 
   // BEGIN: ht_d hash
-  BlockPredLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
-      lo_orderdate + tile_offset, items, num_tile_items, selection_flags);
   BlockProbeAndPHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(
-      items, year, selection_flags, ht_d, d_len, 19920101, num_tile_items);
+      items3, year, selection_flags, ht_d, d_len, 19920101, num_tile_items);
   if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
   // END ht_d hash
 
@@ -91,7 +111,8 @@ __global__ void probe(int *lo_orderdate, int *lo_partkey, int *lo_suppkey,
 
 template <int BLOCK_THREADS, int ITEMS_PER_THREAD>
 __global__ void build_hashtable_s(int *filter_col, int *dim_key, int num_tuples,
-                                  int *hash_table, int num_slots) {
+                                  int *hash_table, int num_slots,
+                                  uint32_t *bf, int bf_size) {
   int items[ITEMS_PER_THREAD];
   int selection_flags[ITEMS_PER_THREAD];
 
@@ -110,13 +131,15 @@ __global__ void build_hashtable_s(int *filter_col, int *dim_key, int num_tuples,
 
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(dim_key + tile_offset, items,
                                                   num_tile_items);
+  BlockBuildBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items, selection_flags, bf, bf_size, num_tile_items);
   BlockBuildSelectivePHT_1<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
       items, selection_flags, hash_table, num_slots, num_tile_items);
 }
 
 template <int BLOCK_THREADS, int ITEMS_PER_THREAD>
 __global__ void build_hashtable_p(int *dim_key, int *dim_val, int num_tuples,
-                                  int *hash_table, int num_slots) {
+                                  int *hash_table, int num_slots,
+                                  uint32_t *bf, int bf_size) {
   int items[ITEMS_PER_THREAD];
   int items2[ITEMS_PER_THREAD];
   int selection_flags[ITEMS_PER_THREAD];
@@ -136,13 +159,16 @@ __global__ void build_hashtable_p(int *dim_key, int *dim_val, int num_tuples,
 
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(dim_key + tile_offset, items2,
                                                   num_tile_items);
+  
+  BlockBuildBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items2, selection_flags, bf, bf_size, num_tile_items);
   BlockBuildSelectivePHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(
       items2, items, selection_flags, hash_table, num_slots, num_tile_items);
 }
 
 template <int BLOCK_THREADS, int ITEMS_PER_THREAD>
 __global__ void build_hashtable_d(int *dim_key, int *dim_val, int num_tuples,
-                                  int *hash_table, int num_slots, int val_min) {
+                                  int *hash_table, int num_slots, int val_min,
+                                  uint32_t *bf, int bf_size) {
   int items[ITEMS_PER_THREAD];
   int items2[ITEMS_PER_THREAD];
   int selection_flags[ITEMS_PER_THREAD];
@@ -161,6 +187,7 @@ __global__ void build_hashtable_d(int *dim_key, int *dim_val, int num_tuples,
                                                   num_tile_items);
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(dim_val + tile_offset, items2,
                                                   num_tile_items);
+  BlockBuildBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items, selection_flags, bf, bf_size, val_min, num_tile_items);
   BlockBuildSelectivePHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(
       items, items2, selection_flags, hash_table, num_slots, val_min,
       num_tile_items);
@@ -181,29 +208,42 @@ float runQuery(int *lo_orderdate, int *lo_partkey, int *lo_suppkey,
 
   int *ht_d, *ht_p, *ht_s;
   int d_val_len = 19981230 - 19920101 + 1;
+  uint32_t *bf_s, *bf_p, *bf_d;
+  int bf_s_size = (int) (roundUpToPowerOfTwo((uint32_t) s_len) / 32);
+  int bf_p_size = (int) (roundUpToPowerOfTwo((uint32_t) p_len) / 32);
+  int bf_d_size = (int) (roundUpToPowerOfTwo((uint32_t) d_val_len) / 32);
   CubDebugExit(
       g_allocator.DeviceAllocate((void **)&ht_d, 2 * d_val_len * sizeof(int)));
   CubDebugExit(
       g_allocator.DeviceAllocate((void **)&ht_p, 2 * p_len * sizeof(int)));
   CubDebugExit(
       g_allocator.DeviceAllocate((void **)&ht_s, 2 * s_len * sizeof(int)));
+  CubDebugExit(
+      g_allocator.DeviceAllocate((void **)&bf_s, bf_s_size * sizeof(uint32_t)));
+  CubDebugExit(
+      g_allocator.DeviceAllocate((void **)&bf_p, bf_p_size * sizeof(uint32_t)));
+  CubDebugExit(
+      g_allocator.DeviceAllocate((void **)&bf_d, bf_d_size * sizeof(uint32_t)));
 
   CubDebugExit(cudaMemset(ht_d, 0, 2 * d_val_len * sizeof(int)));
   CubDebugExit(cudaMemset(ht_p, 0, 2 * p_len * sizeof(int)));
   CubDebugExit(cudaMemset(ht_s, 0, 2 * s_len * sizeof(int)));
+  CubDebugExit(cudaMemset(bf_s, 0, bf_s_size * sizeof(uint32_t)));
+  CubDebugExit(cudaMemset(bf_p, 0, bf_p_size * sizeof(uint32_t)));
+  CubDebugExit(cudaMemset(bf_d, 0, bf_d_size * sizeof(uint32_t)));
 
   int tile_items = 128 * 4;
   build_hashtable_s<128, 4><<<(s_len + tile_items - 1) / tile_items, 128>>>(
-      s_region, s_suppkey, s_len, ht_s, s_len);
+      s_region, s_suppkey, s_len, ht_s, s_len, bf_s, bf_s_size);
   /*CHECK_ERROR();*/
 
   build_hashtable_p<128, 4><<<(p_len + tile_items - 1) / tile_items, 128>>>(
-      p_partkey, p_brand1, p_len, ht_p, p_len);
+      p_partkey, p_brand1, p_len, ht_p, p_len, bf_p, bf_p_size);
   /*CHECK_ERROR();*/
 
   int d_val_min = 19920101;
   build_hashtable_d<128, 4><<<(d_len + tile_items - 1) / tile_items, 128>>>(
-      d_datekey, d_year, d_len, ht_d, d_val_len, d_val_min);
+      d_datekey, d_year, d_len, ht_d, d_val_len, d_val_min, bf_d, bf_d_size);
   /*CHECK_ERROR();*/
 
   int *res;
@@ -217,7 +257,11 @@ float runQuery(int *lo_orderdate, int *lo_partkey, int *lo_suppkey,
   // Run
   probe<128, 4><<<(lo_len + tile_items - 1) / tile_items, 128>>>(
       lo_orderdate, lo_partkey, lo_suppkey, lo_revenue, lo_len, ht_s, s_len,
-      ht_p, p_len, ht_d, d_val_len, res);
+      ht_p, p_len, ht_d, d_val_len, 
+      bf_s, bf_s_size,
+      bf_p, bf_p_size,
+      bf_d, bf_d_size,
+      res);
 
   cudaEventRecord(stop, 0);
   cudaEventSynchronize(stop);
