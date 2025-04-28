@@ -18,8 +18,6 @@
 
 using namespace std;
 
-#define BLOOM 1
-
 /**
  * Globals, constants and typedefs
  */
@@ -58,30 +56,22 @@ __global__ void probe(int *lo_orderdate, int *lo_custkey, int *lo_suppkey,
   // BEGIN bf_c bloom
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
     lo_custkey + tile_offset, items2, num_tile_items);
-  if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
-  #if BLOOM
   BlockProbeBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items2, selection_flags, bf_c, bf_c_size, num_tile_items);
   if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
-  #endif
   // END bf_c bloom
 
   // BEGIN bf_d bloom
   BlockPredLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
       lo_orderdate + tile_offset, items3, num_tile_items, selection_flags);
-  if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
-  #if BLOOM
   BlockProbeBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items3, selection_flags, bf_d, bf_d_size, 19920101, num_tile_items);
   if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
-  #endif
   // END bf_d bloom
 
   // BEGIN bf_s bloom
   BlockPredLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(lo_suppkey + tile_offset,
                                                   items, num_tile_items, selection_flags);
-  #if BLOOM 
   BlockProbeBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items, selection_flags, bf_s, bf_s_size, num_tile_items);
   if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
-  #endif
   // END bf_s bloom
 
   // BEGIN ht_c hash
@@ -146,9 +136,7 @@ __global__ void build_hashtable_s(int *dim_key, int *dim_val, int num_tuples,
 
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(dim_key + tile_offset, items2,
                                                   num_tile_items);
-  #if BLOOM
   BlockBuildBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items2, selection_flags, bf, bf_size, num_tile_items);
-  #endif
   BlockBuildSelectivePHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(
       items2, items, selection_flags, hash_table, num_slots, num_tile_items);
 }
@@ -178,9 +166,7 @@ __global__ void build_hashtable_c(int *dim_key, int *dim_val, int num_tuples,
 
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(dim_key + tile_offset, items2,
                                                   num_tile_items);
-  #if BLOOM
   BlockBuildBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items2, selection_flags, bf, bf_size, num_tile_items);
-  #endif
   BlockBuildSelectivePHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(
       items2, items, selection_flags, hash_table, num_slots, num_tile_items);
 }
@@ -210,21 +196,10 @@ __global__ void build_hashtable_d(int *dim_key, int *dim_val, int num_tuples,
 
   BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(dim_key + tile_offset, items2,
                                                   num_tile_items);
-  #if BLOOM
   BlockBuildBloomFilter<int, BLOCK_THREADS, ITEMS_PER_THREAD>(items2, selection_flags, bf, bf_size, val_min, num_tile_items);
-  #endif
   BlockBuildSelectivePHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(
       items2, items, selection_flags, hash_table, num_slots, 19920101,
       num_tile_items);
-}
-
-
-#define TIME_KFUNC(f,t) { \
-  cudaEventRecord(k_start, 0); \
-  f; \
-  cudaEventRecord(k_stop, 0); \
-  cudaEventSynchronize(k_stop); \
-  cudaEventElapsedTime(&t, k_start,k_stop); \
 }
 
 float runQuery(int *lo_orderdate, int *lo_custkey, int *lo_suppkey,
