@@ -1,24 +1,4 @@
-// MIT License
-
-// Copyright (c) 2023 Jiashen Cao
-
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
+// 2 - Naive, Join Order: D -> S -> C
 
 // Ensure printing of CUDA runtime errors to console
 #define CUB_STDERR
@@ -33,8 +13,8 @@
 
 #include "crystal/crystal.cuh"
 
-#include "gpu_utils.h"
-#include "ssb_utils.h"
+#include "../../ssb/gpu_utils.h"
+#include "../../ssb/ssb_utils.h"
 
 using namespace std;
 
@@ -67,23 +47,29 @@ __global__ void probe(int *lo_orderdate, int *lo_custkey, int *lo_suppkey,
 
   InitFlags<BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags);
 
-  BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(lo_suppkey + tile_offset,
-                                                  items, num_tile_items);
-  BlockProbeAndPHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(
-      items, s_nation, selection_flags, ht_s, s_len, num_tile_items);
-  if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
-
-  BlockPredLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
-      lo_custkey + tile_offset, items, num_tile_items, selection_flags);
-  BlockProbeAndPHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(
-      items, c_nation, selection_flags, ht_c, c_len, num_tile_items);
-  if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
-
-  BlockPredLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
-      lo_orderdate + tile_offset, items, num_tile_items, selection_flags);
+  // BEGIN ht_d hash
+  BlockLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
+      lo_orderdate + tile_offset, items, num_tile_items);
   BlockProbeAndPHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(
       items, year, selection_flags, ht_d, d_len, 19920101, num_tile_items);
   if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
+  // END ht_d hash
+
+  // BEGIN ht_s hash
+  BlockPredLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(lo_suppkey + tile_offset,
+    items, num_tile_items, selection_flags);
+  BlockProbeAndPHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(
+  items, s_nation, selection_flags, ht_s, s_len, num_tile_items);
+  if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
+  // END ht_s hash
+
+  // BEGIN ht_c hash
+  BlockPredLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
+    lo_custkey + tile_offset, items, num_tile_items, selection_flags);
+  BlockProbeAndPHT_2<int, int, BLOCK_THREADS, ITEMS_PER_THREAD>(
+      items, c_nation, selection_flags, ht_c, c_len, num_tile_items);
+  if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
+  // END ht_c hash
 
   BlockPredLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
       lo_revenue + tile_offset, revenue, num_tile_items, selection_flags);
@@ -215,6 +201,7 @@ float runQuery(int *lo_orderdate, int *lo_custkey, int *lo_suppkey,
 
   CubDebugExit(cudaMemset(ht_d, 0, 2 * d_val_len * sizeof(int)));
   CubDebugExit(cudaMemset(ht_s, 0, 2 * s_len * sizeof(int)));
+  CubDebugExit(cudaMemset(ht_c, 0, 2 * c_len * sizeof(int)));
 
   int tile_items = 128 * 4;
   build_hashtable_s<128, 4><<<(s_len + tile_items - 1) / tile_items, 128>>>(
