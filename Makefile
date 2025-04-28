@@ -47,7 +47,7 @@ setup:
 	mkdir -p bin/ssb obj/ssb
 	mkdir -p bin/ops obj/ops
 	mkdir -p bin/ssb-jo obj/ssb-jo
-	for i in 11 12 13 21 22 23 31 32 33 41 42 43; do \
+	for i in 11 12 13 21 22 23 31 32 33 34 41 42 43; do \
 		mkdir -p bin/ssb-jo/q$$i; \
 		mkdir -p obj/ssb-jo/q$$i; \
 	done
