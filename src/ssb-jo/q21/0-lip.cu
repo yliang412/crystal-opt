@@ -115,7 +115,6 @@ __global__ void probe(int *lo_orderdate, int *lo_partkey, int *lo_suppkey,
 
   BlockPredLoad<int, BLOCK_THREADS, ITEMS_PER_THREAD>(
       lo_revenue + tile_offset, revenue, num_tile_items, selection_flags);
-  if (IsTerm<int, BLOCK_THREADS, ITEMS_PER_THREAD>(selection_flags)) { return; }
 
 #pragma unroll
   for (int ITEM = 0; ITEM < ITEMS_PER_THREAD; ++ITEM) {
