@@ -53,7 +53,7 @@ setup:
 	done
 
 ssb-jo: setup
-	@for q in 21 22 23 31 33; do \
+	@for q in 21 22 23 31 32 33 34; do \
 		for n in 0 1 2 3 4 5; do \
 			for method in lip naive; do \
 				$(MAKE) ./bin/ssb-jo/q$$q/$$n-$$method; \
